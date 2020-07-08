@@ -1,76 +1,82 @@
 package com.datum.mapping.dao;
 
+import com.datum.mapping.dto.CustomerRowMapper;
+import com.datum.mapping.dto.PersonalRowMapper;
+import com.datum.mapping.model.Customer;
+import com.datum.mapping.model.PersonalInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.sql.DataSource;
+import java.time.LocalDate;
 import java.util.List;
 
-
-import org.hibernate.Session;
-import org.hibernate.Transaction;
-import org.hibernate.transform.ResultTransformer;
-import org.hibernate.transform.Transformers;
-import org.springframework.stereotype.Service;
-
-import com.datum.mapping.dto.CustomerDto;
-import com.datum.mapping.model.Customer;
-
 @Service
-public class CustomerDaoImpl implements CustomerDao{
-	
-	
-	//could not we get columns directly from table (eg customer_table) rather than from entity (eg. Customer)??
+public class CustomerDaoImpl implements CustomerDao {
 
-	@Override
-	public List<CustomerDto> find() {
-		Session session = com.datum.mapping.util.CustomerSchema.getSession();
-		Transaction tr=session.beginTransaction();
-		String sql="SELECT * FROM customer";
-		List<CustomerDto> customers = (List<CustomerDto>)
-				session
-				.createQuery(
-				    "select " +
-				    "   c.clientCode as clientCode, " +
-				    "   c.firstName as firstName " +
-				    "from Customer c ")
-				.unwrap(org.hibernate.query.Query.class).setResultTransformer( new ResultTransformer() {
-			        @Override
-			        public Object transformTuple(
-			                Object[] tuple,
-			                String[] aliases) {
-			            return new CustomerDto(
-			                ((Number) tuple[0]).intValue(),
-			                (tuple[1]).toString());
-			        }
-			 
-			        @Override
-			        public List transformList(List tuples) {
-			            return tuples;
-			        }
-			    }
-			)
-			.getResultList();
-		return customers;
-	}
+    JdbcTemplate customerJdbcTemplate;
 
-	@Override
-	public void save(Customer customer) {
-		Session session = com.datum.mapping.util.CustomerSchema.getSession();
-		Transaction tr=session.beginTransaction();
-	    session.save(customer);	
-		tr.commit();
-	}
+    public CustomerDaoImpl(DataSource customerDataSource) {
+        customerJdbcTemplate = new JdbcTemplate(customerDataSource);
+    }
 
-	@Override
-	public void update(int clientCode, Customer customer) {
-		
-		Session session = com.datum.mapping.util.CustomerSchema.getSession();
-		Transaction tr=session.beginTransaction();
-		System.out.println("............."+clientCode);
-		System.out.println("................."+customer.getFirstName());
-	    String sql="update customer  set first_name=:fName where client_code="+clientCode+"";	
-		session.createQuery(sql).setParameter("fName",customer.getFirstName()).executeUpdate();
-		tr.commit();
-	}
-	
-	
-	
+    Logger logger = LoggerFactory.getLogger(CustomerDaoImpl.class);
 
+    LocalDate date = LocalDate.now();
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> find() {
+        return customerJdbcTemplate.queryForList("SELECT first_name FROM customer_schema.customer", String.class);
+
+    }
+
+    @Override
+    public void save(Customer customer) {
+        logger.info("data inserting..........");
+
+        // customer table
+        customerJdbcTemplate.update(
+                "INSERT INTO customer.customer (client_code, first_name, last_name, father_name,modify_date) VALUES (?, ?, ?, ?,?)",
+                customer.getClientCode(), customer.getFirstName(), customer.getLastName(), customer.getFatherName(),
+                date);
+
+        // personal_info table
+        customerJdbcTemplate.update("insert into customer.personal_info (customer_id,first_name,last_name) values(?,?,?)",
+                customer.getClientCode(), customer.getFirstName(), customer.getLastName());
+
+    }
+
+    @Override
+    public List<Customer> findAll() {
+        logger.info("data selecting..........");
+        return customerJdbcTemplate.query("select * from customer.customer", new CustomerRowMapper());
+    }
+
+    @Override
+    public void update(int clientCode, Customer customer) {
+        customerJdbcTemplate.update("update customer.customer set first_name='" + customer.getFirstName() + "', last_name='"
+                + customer.getLastName() + "',father_name='" + customer.getFatherName() + "',modify_date='"
+                + date + "' where client_code='" + clientCode + "'");
+
+        String pSql = "select * from customer.personal_info where customer_id='" + clientCode + "'";
+        List<PersonalInfo> personalInfos = customerJdbcTemplate.query(pSql, new PersonalRowMapper());
+
+        if (!personalInfos.get(0).getFirstName().equals(customer.getFirstName()) && !personalInfos.get(0).getLastName().equals(customer.getLastName())) {
+            customerJdbcTemplate.update("update customer.personal_info set first_name='" + customer.getFirstName() + "',last_name='"
+                    + customer.getLastName() + "' where customer_id='" + clientCode + "'");
+        }
+
+        if (!personalInfos.get(0).getFirstName().equals(customer.getFirstName()) && personalInfos.get(0).getLastName().equals(customer.getLastName())) {
+            customerJdbcTemplate.update("update customer.personal_info set first_name='" + customer.getFirstName() + "' where customer_id='" + clientCode + "'");
+        }
+
+        if (personalInfos.get(0).getFirstName().equals(customer.getFirstName()) && !personalInfos.get(0).getLastName().equals(customer.getLastName())) {
+            customerJdbcTemplate.update("update customer.personal_info set first_name='" + customer.getLastName() + "' where customer_id='" + clientCode + "'");
+        }
+        logger.info("tables updated");
+    }
 }

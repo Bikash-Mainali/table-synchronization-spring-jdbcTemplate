@@ -1,3 +1,4 @@
+
 package com.datum.mapping.model;
 
 import java.io.Serializable;
@@ -9,12 +10,13 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
-@Table(name="master",schema="master_schema")
+
+@Table(name="master",schema="master")
 public class Master implements Serializable {
 	private static final long serialVersionUID = 1L;
 
-
 	@Id
+
 	@Column(name = "client_code")
 	private int clientCode;
 
@@ -57,10 +59,6 @@ public class Master implements Serializable {
 
 	public void setModifyDate(Date modifyDate) {
 		this.modifyDate = modifyDate;
-	}
-
-	public static long getSerialversionuid() {
-		return serialVersionUID;
 	}
 
 	@Override

@@ -1,5 +1,7 @@
 package com.datum.mapping.model;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
 import java.io.Serializable;
 import java.util.Date;
 
@@ -9,7 +11,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "customer", schema = "customer_schema")
+@Table(name="customer",schema="customer")
 public class Customer implements Serializable {
 	
 	private static final long serialVersionUID = 1L;
@@ -29,7 +31,8 @@ public class Customer implements Serializable {
 
 	@Column(name = "modify_date")
 	private Date modifyDate;
-	
+
+
 	public int getClientCode() {
 		return clientCode;
 	}
@@ -69,11 +72,6 @@ public class Customer implements Serializable {
 	public void setModifyDate(Date modifyDate) {
 		this.modifyDate = modifyDate;
 	}
-
-	public static long getSerialversionuid() {
-		return serialVersionUID;
-	}
-
 
 	@Override
 	public String toString() {

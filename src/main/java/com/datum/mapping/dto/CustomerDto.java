@@ -1,7 +1,5 @@
 package com.datum.mapping.dto;
 
-import java.util.Date;
-
 public class CustomerDto {
 	private int clientCode;
 	private String firstName;

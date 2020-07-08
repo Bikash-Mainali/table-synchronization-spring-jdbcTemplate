@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.datum.mapping.dao.CustomerDaoImpl;
-import com.datum.mapping.dto.CustomerDto;
 import com.datum.mapping.model.Customer;
 
 @CrossOrigin
@@ -26,29 +25,32 @@ import com.datum.mapping.model.Customer;
 public class CustomerController {
 	Logger logger = LoggerFactory.getLogger(CustomerController.class);
 
-	@Autowired	
+	@Autowired
 	private CustomerDaoImpl customerDaoImpl;
 
-	
-	@GetMapping("/getCustomers")
-	public List<CustomerDto> find(){
+	@GetMapping("/getCustomerName")
+	public List<String> findFirstName() {
 		return customerDaoImpl.find();
-		
+
 	}
+
 	@PostMapping("/postCustomers")
 	public ResponseEntity<Void> save(@RequestBody Customer customer) {
-		logger.info("customer name is:{}",customer.getFirstName());
+		logger.info("customer name is:{}", customer.getFirstName());
 		customerDaoImpl.save(customer);
 		return new ResponseEntity<>(HttpStatus.CREATED);
 	}
+
 	
-	@PutMapping("/updateCustomer/{clientCode}")
-	public ResponseEntity<String> update(@PathVariable("clientCode") int clientCode,@RequestBody Customer customer){
-		
-		customerDaoImpl.update(clientCode,customer);
-		return new ResponseEntity<>(HttpStatus.CREATED);
-		
+	@GetMapping("/getCustomers")
+	public ResponseEntity<List<Customer>> findAll(){	
+		return new ResponseEntity<>(customerDaoImpl.findAll(),HttpStatus.OK);
 	}
 	
+	@PutMapping("/updateCustomer/{clientCode}")
+	public ResponseEntity<Void> update(@PathVariable ("clientCode") int clientCode,@RequestBody Customer customer) {
+		customerDaoImpl.update(clientCode,customer);
+		return new ResponseEntity<>(HttpStatus.OK);
+	}	
 
 }
